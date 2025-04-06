@@ -1,0 +1,128 @@
+// Break schedule with admin-only editing after confirmation, and one editable case per break
+import React, { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+
+function BreakScheduleTable({ title, breakSlots, maxAgentsPerSlot = 1, isAdmin = false }) {
+  const [assignments, setAssignments] = useState(() => {
+    const initialized = {};
+    breakSlots.forEach(slot => {
+      initialized[slot] = Array(maxAgentsPerSlot).fill("");
+    });
+    return initialized;
+  });
+
+  const [confirmedCells, setConfirmedCells] = useState(() => {
+    const initialized = {};
+    breakSlots.forEach(slot => {
+      initialized[slot] = Array(maxAgentsPerSlot).fill(false);
+    });
+    return initialized;
+  });
+
+  const [userBreakUsed, setUserBreakUsed] = useState(false);
+
+  const handleInputChange = (slot, index, value) => {
+    setAssignments(prev => {
+      const updated = { ...prev };
+      updated[slot][index] = value;
+      return updated;
+    });
+  };
+
+  const handleKeyPress = (e, slot, index) => {
+    if (e.key === "Enter" && assignments[slot][index].trim() !== "") {
+      setConfirmedCells(prev => {
+        const updated = { ...prev };
+        updated[slot][index] = true;
+        return updated;
+      });
+      setUserBreakUsed(true);
+    }
+  };
+
+  return (
+    <Card className="mt-10 w-full overflow-x-auto">
+      <CardContent className="p-6">
+        <h3 className="text-xl font-semibold mb-4 text-center">{title}</h3>
+        <table className="table-auto w-full border mb-4">
+          <thead>
+            <tr className="bg-gray-200">
+              {breakSlots.map((slot, i) => (
+                <th key={i} className="border px-4 py-2 text-center text-sm font-medium">
+                  {slot}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[...Array(maxAgentsPerSlot)].map((_, rowIndex) => (
+              <tr key={rowIndex}>
+                {breakSlots.map((slot, colIndex) => (
+                  <td key={`${rowIndex}-${colIndex}`} className="border px-2 py-1 text-center">
+                    <Input
+                      type="text"
+                      value={assignments[slot][rowIndex]}
+                      onChange={(e) => handleInputChange(slot, rowIndex, e.target.value)}
+                      onKeyDown={(e) => handleKeyPress(e, slot, rowIndex)}
+                      disabled={(confirmedCells[slot][rowIndex] || userBreakUsed) && !isAdmin}
+                      maxLength={12}
+                      className={`text-sm text-center ${confirmedCells[slot][rowIndex] ? 'font-bold cursor-not-allowed' : ''}`}
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function BreakSchedulePage() {
+  const today = new Date().toLocaleDateString(undefined, {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  const isAdmin = false;
+
+  return (
+    <div className="min-h-screen bg-gray-100 py-10 px-4 flex flex-col items-center">
+      <h2 className="text-lg font-medium text-gray-700 mb-2">{today}</h2>
+
+      <BreakScheduleTable
+        title="🍽️ Lunch Break"
+        breakSlots={["9:00 PM", "9:30 PM", "10:00 PM", "10:30 PM"]}
+        maxAgentsPerSlot={3}
+        isAdmin={isAdmin}
+      />
+
+      <BreakScheduleTable
+        title="🍵 First Tea Break"
+        breakSlots={[
+          "7:00 PM", "7:15 PM", "7:30 PM", "7:45 PM",
+          "8:00 PM", "8:15 PM", "8:30 PM", "8:45 PM"
+        ]}
+        maxAgentsPerSlot={2}
+        isAdmin={isAdmin}
+      />
+
+      <BreakScheduleTable
+        title="🍵 Second Tea Break"
+        breakSlots={[
+          "12:00 AM", "12:15 AM", "12:30 AM", "12:45 AM",
+          "1:00 AM", "1:15 AM", "1:30 AM", "1:45 AM"
+        ]}
+        maxAgentsPerSlot={2}
+        isAdmin={isAdmin}
+      />
+    </div>
+  );
+}
+
+export default BreakSchedulePage;
+
